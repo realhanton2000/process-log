@@ -1,9 +1,12 @@
 package processlog.logic;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.LoggerContext;
 import org.junit.*;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -15,6 +18,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.support.AnnotationConfigContextLoader;
 import org.springframework.util.FileSystemUtils;
 import processlog.TestTemplate;
+import processlog.util.MemoryAppender;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,9 +38,6 @@ public class ProcessFlowJSONExceptionTest extends TestTemplate {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
-    @Rule
-    public ExpectedException exceptionRule = ExpectedException.none();
-
     @BeforeClass
     public static void beforeClass() throws SQLException, ClassNotFoundException {
         TestTemplate.initDatabase();
@@ -49,24 +50,36 @@ public class ProcessFlowJSONExceptionTest extends TestTemplate {
 
     private File tempDir;
 
+    private MemoryAppender memoryAppender;
+
     @Before
     public void before() throws IOException {
         Path testFile = Paths.get("src", "test", "resources", "file", "logfile-invalid.txt");
         tempDir = folder.newFolder();
         Path tempFile = Paths.get(tempDir.getAbsolutePath(), "logfile.txt");
         Files.copy(testFile, tempFile);
+
+        Logger logger = (Logger) LoggerFactory.getLogger(LOGGER_NAME);
+        memoryAppender = new MemoryAppender();
+        memoryAppender.setContext((LoggerContext) LoggerFactory.getILoggerFactory());
+        logger.setLevel(Level.DEBUG);
+        logger.addAppender(memoryAppender);
+        memoryAppender.start();
     }
 
     @After
     public void after() {
         FileSystemUtils.deleteRecursively(tempDir);
+        memoryAppender.reset();
     }
 
     @Test
     public void testProcessFlow_invalid() {
         //require event id
-        exceptionRule.expect(NullPointerException.class);
         processFlow.process(tempDir.getAbsolutePath());
+
+        Assert.assertTrue("Event id can't be empty.",
+                memoryAppender.contains("Event id can't be empty.", Level.ERROR));
     }
 
     @Configuration

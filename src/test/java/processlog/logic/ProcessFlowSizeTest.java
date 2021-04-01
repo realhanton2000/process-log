@@ -3,7 +3,6 @@ package processlog.logic;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.spi.ILoggingEvent;
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
@@ -30,7 +29,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.SQLException;
-import java.util.List;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = ProcessFlowSizeTest.TestConfig.class,
@@ -61,7 +59,7 @@ public class ProcessFlowSizeTest extends TestTemplate {
 
     @Before
     public void before() throws IOException {
-        Path testFile = Paths.get("src", "test", "resources", "file", "logfile-normal.txt");
+        Path testFile = Paths.get("src", "test", "resources", "file", "logfile-size.txt");
         tempDir = folder.newFolder();
         Path tempFile = Paths.get(tempDir.getAbsolutePath(), "logfile.txt");
         Files.copy(testFile, tempFile);
@@ -83,10 +81,8 @@ public class ProcessFlowSizeTest extends TestTemplate {
     @Test
     public void testProcessFlow() throws SQLException {
         processFlow.process(tempDir.getAbsolutePath());
-        Assert.assertEquals("Row count must be 1", 1, getEventCount());
-
-        List<ILoggingEvent> list = memoryAppender.search("Reached max allowed limitation of unpaired events.", Level.ERROR);
-        Assert.assertEquals("Reached max allowed limitation occurred 2 time", 2, list.size());
+        Assert.assertTrue("Reached max allowed limitation occurred",
+                memoryAppender.contains("Reached max allowed limitation of unpaired events.", Level.ERROR));
     }
 
     @Configuration

@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import processlog.model.Event;
 import processlog.model.EventPair;
 
@@ -32,6 +33,9 @@ public class EventPool {
         }
         EventPair ep;
         if ((ep = all.get(event.getId())) == null) {
+            if (StringUtils.isEmpty(event.getId())) {
+                throw new ProLogException("Event id can't be empty.");
+            }
             ep = new EventPair(event.getId());
             switch (event.getState()) {
                 case STARTED:

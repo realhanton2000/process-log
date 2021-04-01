@@ -16,6 +16,7 @@ import processlog.stream.StreamGenerator;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Phaser;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -46,13 +47,25 @@ public class ProcessFlow {
         pool.setWritingHandler(writingHandler);
         logger.info("Process stream");
         try (Stream<String> lines = streamGen.getStream(source)) {
+            Phaser phaser = new Phaser(1);
+
             Consumer<String> consumer = (line) -> {
                 try {
                     if (StringUtils.isEmpty(line)) {
                         throw new ProLogException("This is an empty line.");
                     }
                     Event event = objectMapper.readValue(line, Event.class);
-                    pool.put(event);
+
+                    phaser.register();
+                    new Thread(() -> {
+                        try {
+                            pool.put(event);
+                        } catch (ProLogException e) {
+                            logger.error(e.getMessage(), e);
+                        } finally {
+                            phaser.arriveAndDeregister();
+                        }
+                    }).start();
                 } catch (JsonProcessingException e) {
                     logger.error("Exception occurred during JSON deserialization", e);
                 } catch (ProLogException e) {
@@ -60,6 +73,8 @@ public class ProcessFlow {
                 }
             };
             lines.forEach(consumer);
+
+            phaser.arriveAndAwaitAdvance();
             pool.flush();
         } catch (ProLogException e) {
             logger.error("Exception occurred when getting stream:", e);
