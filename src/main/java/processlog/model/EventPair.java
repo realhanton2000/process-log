@@ -1,7 +1,5 @@
 package processlog.model;
 
-import java.util.Objects;
-
 public class EventPair {
 
     private String id;
@@ -9,17 +7,11 @@ public class EventPair {
     private Event finishedEvent;
 
     public EventPair(String id) {
-        Objects.requireNonNull(id);
         this.id = id;
     }
 
     public String getId() {
         return id;
-    }
-
-    public void setId(String id) {
-        Objects.requireNonNull(id);
-        this.id = id;
     }
 
     public Event getStartedEvent() {
