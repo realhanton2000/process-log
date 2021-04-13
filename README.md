@@ -28,4 +28,3 @@ processlog.maxSize=-1             <-- In the extreme case that here are too many
 processlog.alertThreshold=4       <-- Decide if this event shall be flagged (default 4 ms)
 ```
 
-implemented one version to utilize multi-threads, committed to [multi-threads](https://github.com/realhanton2000/process-log/tree/multi-thread) branch.
